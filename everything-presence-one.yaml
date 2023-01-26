@@ -24,8 +24,8 @@ esphome:
 
 esp32:
   board: esp32dev
-  framework:
-    type: esp-idf
+#  framework:
+#    type: esp-idf
 
 logger:
 
@@ -104,10 +104,10 @@ sensor:
       accuracy_decimals: 1
       filters:
         - lambda: return x * 2.3;        #ppd -> μg/m³
-        - exponential_moving_average:
-          alpha: 0.1
-          send_every: 10
-          send_first_at: 1
+#        - exponential_moving_average:
+#          alpha: 0.1
+#          send_every: 10
+#          send_first_at: 1
       unit_of_measurement: "μg/m³"
     store_baseline: yes
     i2c_id: bus_b
