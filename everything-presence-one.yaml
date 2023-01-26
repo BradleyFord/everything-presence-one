@@ -1,9 +1,9 @@
 substitutions:
-  name: "everything-presence-one"
-  room: ""
+  name: "ep1"
+  room: "Living Room"
   friendly_name: "Everything Presence One"
   project_name: "Everything Smart Technology.Everything Presence One"
-  project_version: "1.1.3"
+  project_version: "1.1.3-custom"
   temperature_offset: "-3"
   humidity_offset: "5"
   temperature_update_interval: "60s"
@@ -24,6 +24,8 @@ esphome:
 
 esp32:
   board: esp32dev
+  framework:
+    type: esp-idf
 
 logger:
 
@@ -31,19 +33,30 @@ api:
 
 ota:
 
+web_server:
+
 wifi:
-  fast_connect: ${hidden_ssid}
-  ap: {}
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
 
 captive_portal:
 
 improv_serial:
 
-esp32_improv:
-  authorizer: none
+#esp32_improv:
+#  authorizer: none
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+
+bluetooth_proxy:
+  active: true
   
 dashboard_import:
-  package_import_url: github://everythingsmarthome/presence-one/everything-presence-one.yaml@main
+  package_import_url: github://BradleyFord/everything-presence-one/everything-presence-one.yaml@main
   import_full_config: false
 
 light:
@@ -53,26 +66,56 @@ light:
     entity_category: config
 
 i2c:
-  sda: 26
-  scl: 25
-  scan: true
+  - id: bus_a
+    sda: 26
+    scl: 25
+    scan: true
+  - id: bus_b
+    sda: 23
+    scl: 22
+    scan: true
 
 sensor:
   - platform: shtcx
     temperature:
       name: "${room} Temperature"
+      id: temperature
       filters:
         offset: ${temperature_offset}
     humidity:
       name: "${room} Humidity"
+      id: humidity
       filters:
         offset: ${humidity_offset}
+    i2c_id: bus_a
     address: 0x70
     update_interval: ${temperature_update_interval}
   - platform: bh1750
     name: "${room} Illuminance"
+    i2c_id: bus_a
     address: 0x23
     update_interval: ${illuminance_update_interval}
+  - platform: sgp30
+    eco2:
+      name: "${room} eCO2"
+      accuracy_decimals: 1
+    tvoc:
+      name: "${room} TVOC"
+      accuracy_decimals: 1
+      filters:
+        - lambda: return x * 2.3;        #ppd -> μg/m³
+        - exponential_moving_average:
+          alpha: 0.1
+          send_every: 10
+          send_first_at: 1
+      unit_of_measurement: "μg/m³"
+    store_baseline: yes
+    i2c_id: bus_b
+    address: 0x58
+    update_interval: 60s
+    compensation:
+      temperature_source: temperature
+      humidity_source: humidity
 
 binary_sensor:
   - platform: gpio
