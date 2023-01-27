@@ -112,7 +112,7 @@ sensor:
     store_baseline: yes
     i2c_id: bus_b
     address: 0x58
-    update_interval: 60s
+    update_interval: 10s
     compensation:
       temperature_source: temperature
       humidity_source: humidity
