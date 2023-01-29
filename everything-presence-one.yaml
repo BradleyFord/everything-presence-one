@@ -116,6 +116,12 @@ sensor:
     compensation:
       temperature_source: temperature
       humidity_source: humidity
+  - platform: senseair
+    co2:
+      name: "${room} CO2 Value"
+    update_interval: 60s
+    uart_id: uart_bus2
+    id: senseairid
 
 binary_sensor:
   - platform: gpio
@@ -151,17 +157,21 @@ binary_sensor:
         return id(occupancy).state;
       }
 uart:
-  id: uart_bus
-  tx_pin: GPIO13
-  rx_pin: GPIO14
-  baud_rate: 115200
-  debug:
-    direction: BOTH
-    dummy_receiver: true
-    after:
-      delimiter: "\n"
-    sequence:
-      - lambda: UARTDebug::log_string(direction, bytes);
+  - id: uart_bus
+    tx_pin: GPIO13
+    rx_pin: GPIO14
+    baud_rate: 115200
+    debug:
+      direction: BOTH
+      dummy_receiver: true
+      after:
+        delimiter: "\n"
+      sequence:
+        - lambda: UARTDebug::log_string(direction, bytes);
+  - id: uart_bus2
+    rx_pin: GPIO18
+    tx_pin: GPIO19
+    baud_rate: 9600
 
 switch:
   - platform: template
@@ -171,10 +181,14 @@ switch:
     optimistic: true
     restore_state: true
     turn_on_action:
-      - uart.write: "sensorStart"
+      - uart.write:
+          id: uart_bus
+          data: "sensorStart"
       - delay: 1s
     turn_off_action:
-      - uart.write: "sensorStop"
+      - uart.write:
+          id: uart_bus
+          data:  "sensorStop"
       - delay: 1s
 
   - platform: template
@@ -186,17 +200,25 @@ switch:
     turn_on_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "setLedMode 1 0"
+      - uart.write:
+          id: uart_bus
+          data: "setLedMode 1 0"
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write:
+          id: uart_bus
+          data: "saveConfig"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
     turn_off_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "setLedMode 1 1"
+      - uart.write:
+          id: uart_bus
+          data: "setLedMode 1 1"
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write:
+          id: uart_bus
+          data: "saveConfig"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
 
@@ -210,17 +232,25 @@ switch:
     turn_on_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "setUartOutput 1 1"
+      - uart.write:
+          id: uart_bus
+          data: "setUartOutput 1 1"
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write:
+          id: uart_bus
+          data: "saveConfig"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
     turn_off_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "setUartOutput 1 0"
+      - uart.write: 
+          id: uart_bus
+          data: "setUartOutput 1 0"
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write: 
+          id: uart_bus
+          data: "saveConfig"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
 
@@ -235,19 +265,41 @@ switch:
     turn_on_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "setUartOutput 2 1 1 1"
+      - uart.write: 
+          id: uart_bus
+          data: "setUartOutput 2 1 1 1"
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write: 
+          id: uart_bus
+          data: "saveConfig"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
     turn_off_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "setUartOutput 2 0"
+      - uart.write: 
+          id: uart_bus
+          data: "setUartOutput 2 0"
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write: 
+          id: uart_bus
+          data: "saveConfig"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
+
+  - platform: template
+    name: "CO2 ABC Enable"
+    id: "abc_enable"
+    icon: "mdi:auto-fix"
+    entity_category: config
+    optimistic: true
+    assumed_state: true
+    turn_on_action:
+      - senseair.abc_get_period: senseairid
+      - senseair.abc_enable: senseairid
+    turn_off_action:
+      - senseair.abc_get_period: senseairid
+      - senseair.abc_disable: senseairid
 
 number:
   - platform: template
@@ -265,11 +317,15 @@ number:
     set_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: !lambda int cm = (int)ceil(x / 15.0);
-          std::string cms = "detRangeCfg -1 0 " + to_string(cm);
-          return std::vector<unsigned char>(cms.begin(), cms.end());
+      - uart.write: 
+          id: uart_bus
+          data: !lambda int cm = (int)ceil(x / 15.0);
+            std::string cms = "detRangeCfg -1 0 " + to_string(cm);
+            return std::vector<unsigned char>(cms.begin(), cms.end());
       - delay: 1s
-      - uart.write: "saveCfg 0x45670123 0xCDEF89AB 0x956128C6 0xDF54AC89"
+      - uart.write:  
+          id: uart_bus
+          data: "saveCfg 0x45670123 0xCDEF89AB 0x956128C6 0xDF54AC89"
       - delay: 1s
       - switch.turn_on: mmwave_sensor
 
@@ -288,11 +344,15 @@ number:
     set_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: !lambda |-
-          std::string mss = "setLatency " + to_string(id(mmwave_on_latency).state) + " " + to_string(id(mmwave_off_latency).state);
-          return std::vector<unsigned char>(mss.begin(), mss.end());
+      - uart.write:  
+          id: uart_bus
+          data: !lambda |-
+            std::string mss = "setLatency " + to_string(id(mmwave_on_latency).state) + " " + to_string(id(mmwave_off_latency).state);
+            return std::vector<unsigned char>(mss.begin(), mss.end());
       - delay: 1s
-      - uart.write: "saveCfg 0x45670123 0xCDEF89AB 0x956128C6 0xDF54AC89"
+      - uart.write:  
+          id: uart_bus
+          data: "saveCfg 0x45670123 0xCDEF89AB 0x956128C6 0xDF54AC89"
       - delay: 1s
       - switch.turn_on: mmwave_sensor
 
@@ -311,11 +371,15 @@ number:
     set_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: !lambda |-
-          std::string mss = "setLatency " + to_string(id(mmwave_on_latency).state) + " " + to_string(id(mmwave_off_latency).state);
-          return std::vector<unsigned char>(mss.begin(), mss.end());
+      - uart.write:  
+          id: uart_bus
+          data: !lambda |-
+            std::string mss = "setLatency " + to_string(id(mmwave_on_latency).state) + " " + to_string(id(mmwave_off_latency).state);
+            return std::vector<unsigned char>(mss.begin(), mss.end());
       - delay: 1s
-      - uart.write: "saveCfg 0x45670123 0xCDEF89AB 0x956128C6 0xDF54AC89"
+      - uart.write:  
+          id: uart_bus
+          data: "saveCfg 0x45670123 0xCDEF89AB 0x956128C6 0xDF54AC89"
       - delay: 1s
       - switch.turn_on: mmwave_sensor
 
@@ -332,11 +396,14 @@ number:
     set_action:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write:
-          !lambda std::string mss = "setSensitivity " + to_string((int)x);
-          return std::vector<unsigned char>(mss.begin(), mss.end());
+      - uart.write: 
+          id: uart_bus
+          data: !lambda std::string mss = "setSensitivity " + to_string((int)x);
+            return std::vector<unsigned char>(mss.begin(), mss.end());
       - delay: 1s
-      - uart.write: "saveConfig"
+      - uart.write:  
+          id: uart_bus
+          data: "saveConfig"
       - delay: 1s
       - switch.turn_on: mmwave_sensor
 
@@ -352,7 +419,9 @@ button:
     entity_category: config
     internal: true
     on_press:
-      - uart.write: "resetSystem"
+      - uart.write:  
+          id: uart_bus
+          data: "resetSystem"
   - platform: template
     name: Restart $name
     entity_category: config
@@ -371,6 +440,20 @@ button:
     on_press:
       - switch.turn_off: mmwave_sensor
       - delay: 1s
-      - uart.write: "resetCfg"
+      - uart.write:  
+          id: uart_bus
+          data: "resetCfg"
       - delay: 3s
       - switch.turn_on: mmwave_sensor
+  - platform: template
+    name: "Senseair Background Calibration"
+    id: "senseair_background_calibration"
+    icon: "mdi:tune-variant"
+#    internal: 
+    entity_category: config
+    on_press:
+      then:
+        - senseair.background_calibration: senseairid
+        - delay: 3s
+        - senseair.background_calibration_result: senseairid
+        - senseair.abc_get_period: senseairid
