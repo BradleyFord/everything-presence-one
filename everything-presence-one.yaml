@@ -121,7 +121,7 @@ sensor:
       tvoc_baseline: 0x91AE
   - platform: senseair
     co2:
-      name: "${room} CO2 Value"
+      name: "${room} CO2"
     update_interval: 60s
     uart_id: uart_bus2
     id: senseairid
