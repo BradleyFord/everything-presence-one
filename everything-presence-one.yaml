@@ -116,6 +116,9 @@ sensor:
     compensation:
       temperature_source: temperature
       humidity_source: humidity
+    baseline:
+      eco2_baseline: 0x98FC
+      tvoc_baseline: 0x91AE
   - platform: senseair
     co2:
       name: "${room} CO2 Value"
