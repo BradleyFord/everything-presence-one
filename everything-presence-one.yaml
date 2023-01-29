@@ -46,14 +46,14 @@ improv_serial:
 #esp32_improv:
 #  authorizer: none
 
-esp32_ble_tracker:
-  scan_parameters:
-    interval: 1100ms
-    window: 1100ms
-    active: true
+#esp32_ble_tracker:
+#  scan_parameters:
+#    interval: 1100ms
+#    window: 1100ms
+#    active: true
 
-bluetooth_proxy:
-  active: true
+#bluetooth_proxy:
+#  active: true
   
 dashboard_import:
   package_import_url: github://BradleyFord/everything-presence-one/everything-presence-one.yaml@main
