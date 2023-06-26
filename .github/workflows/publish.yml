@@ -16,3 +16,12 @@ jobs:
       manifest_filename: everything-presence-one-manifest.json
       clean: false
       esphome_version: latest
+  publish-everything-presence-one-smartthings:
+    name: Publish Everything Presence One Smartthings
+    uses: esphome/workflows/.github/workflows/publish.yml@main
+    with:
+      files: everything-presence-one-st.yaml
+      name: Everything Presence One SmartThings
+      manifest_filename: everything-presence-one-st-manifest.json
+      clean: false
+      esphome_version: latest
