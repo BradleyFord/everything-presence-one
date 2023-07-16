@@ -1,10 +1,10 @@
 substitutions:
-  name: "ep1"
-  room: "Living Room"
+  name: "ep1-office"
+  room: "Office"
   friendly_name: "Everything Presence One"
   project_name: "Everything Smart Technology.Everything Presence One"
   project_version: "1.1.3-custom"
-  temperature_offset: "-3"
+  temperature_offset: "-4"
   humidity_offset: "5"
   temperature_update_interval: "60s"
   illuminance_update_interval: "30s"
@@ -12,15 +12,17 @@ substitutions:
   occupancy_delay_off: "15s"
   hidden_ssid: "false"
   factory_reset_disabled: "true"
-  uart_target_output_disabled: "true"
+  uart_target_output_disabled: "false"
   uart_presence_output_disabled: "true"
 
 esphome:
   name: "${name}"
-  name_add_mac_suffix: true
+  name_add_mac_suffix: false
   project:
     name: "${project_name}"
     version: "${project_version}"
+  includes:
+    - SEN0395_distance.h
 
 esp32:
   board: esp32dev
@@ -30,6 +32,8 @@ esp32:
 logger:
 
 api:
+  encryption:
+    key: !secret encryptionkey
 
 ota:
 
@@ -95,6 +99,10 @@ sensor:
     i2c_id: bus_a
     address: 0x23
     update_interval: ${illuminance_update_interval}
+  - platform: template
+    name: Target Distance m
+    id: target_distance_m # do not change
+    accuracy_decimals: 1
   - platform: sgp30
     eco2:
       name: "${room} eCO2"
@@ -307,6 +315,7 @@ switch:
 number:
   - platform: template
     name: mmWave Distance
+    icon: mdi:arrow-left-right
     id: mmwave_distance
     entity_category: config
     min_value: 0
@@ -334,6 +343,7 @@ number:
 
   - platform: template
     name: mmWave Off Latency
+    icon: mdi:clock-end
     id: mmwave_off_latency
     entity_category: config
     min_value: 1
@@ -361,6 +371,7 @@ number:
 
   - platform: template
     name: mmWave On Latency
+    icon: mdi:clock-start
     id: mmwave_on_latency
     entity_category: config
     min_value: 0
@@ -388,6 +399,7 @@ number:
 
   - platform: template
     name: mmWave Sensitivity
+    icon: mdi:target-variant
     id: mmwave_sensitivity
     entity_category: config
     min_value: 0
@@ -427,6 +439,7 @@ button:
           data: "resetSystem"
   - platform: template
     name: Restart $name
+    icon: mdi:restart
     entity_category: config
     on_press:
       - button.press: restart_mmwave
@@ -437,6 +450,7 @@ button:
     entity_category: config
   - platform: template
     name: "Factory Reset mmWave"
+    icon: mdi:cog-counterclockwise
     id: "factory_reset_mmwave"
     internal: ${factory_reset_disabled}
     entity_category: config
@@ -460,3 +474,8 @@ button:
         - delay: 3s
         - senseair.background_calibration_result: senseairid
         - senseair.abc_get_period: senseairid
+        
+custom_component:
+- lambda: |-
+    auto my_custom = new Sen0395Distance(id(uart_bus));
+    return {my_custom};
